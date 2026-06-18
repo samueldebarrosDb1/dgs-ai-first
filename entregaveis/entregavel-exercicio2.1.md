@@ -11,8 +11,8 @@ Cada server expõe **Tools** (ações), **Resources** (dados read-only) e/ou **P
 | Necessidade do projeto | Server | O que expõe (Tools / Resources / Prompts) | Quem consome | Escopo / pasta |
 |---|---|---|---|---|
 | Ler e escrever código, specs e skills | `filesystem` | **Tools:** `read_file`, `read_multiple_files`, `write_file`, `edit_file`, `create_directory`, `list_directory`, `directory_tree`, `move_file`, `search_files`, `get_file_info`. **Resources:** raízes permitidas. | Devs, Tech Lead | `./src`, `./specs`, `./skills` |
-| Ler documentação de negócio da NovaTech (substitui Confluence) | `filesystem` | Tools de leitura (`read_file`, `list_directory`, `search_files`) | Todos os papéis | `./docs/novatech/` (Anexo A) — leitura |
-| "Recuperar" chunks para RAG (substitui Azure AI Search) | `filesystem` | Tools de leitura/busca (`search_files`, `read_file`) | Devs, QA, Product Specialist | `./data/retrieval-corpus/` (Anexo B) — leitura |
+| Ler documentação de negócio da NovaTech (substitui Confluence — ADR-0001: stack Azure/Microsoft; nesta fase o repo é local sem remoto) | `filesystem` | Tools de leitura (`read_file`, `list_directory`, `search_files`) | Todos os papéis | `./docs/novatech/` (Anexo A) — leitura |
+| "Recuperar" chunks para RAG (substitui Azure AI Search — ADR-0004: protótipo open-source validou a abordagem; corpus local simula o índice de produção) | `filesystem` | Tools de leitura/busca (`search_files`, `read_file`) | Devs, QA, Product Specialist | `./data/retrieval-corpus/` (Anexo B) — leitura |
 | Histórico, diff e branches do repositório (substitui GitHub) | `git` | **Tools:** `git_status`, `git_log`, `git_diff`, `git_diff_staged`, `git_show`, `git_branch`. | Tech Lead, Devs, QA | repositório local (`.`) |
 | Memória persistente: linguagem ubíqua e decisões do projeto | `memory` | **Tools:** `create_entities`, `create_relations`, `add_observations`, `read_graph`, `search_nodes`, `open_nodes`. **Resources:** grafo de conhecimento. | Todos os papéis | grafo local |
 | Explorar/aprender as primitivas de MCP | `everything` | Tools/Resources/Prompts de demonstração. | Time (aprendizado) | — |
@@ -67,7 +67,7 @@ Os escopos são caminhos relativos à raiz do repositório (`novatech-assistant/
 
 ### Read-only para as fontes de negócio (`docs/novatech/`, `data/retrieval-corpus/`)
 
-Essas pastas são fonte de verdade (substituem Confluence e Azure AI Search): o agente deve ler, nunca alterar, sob risco de corromper um documento ou o gabarito do RAG. O read-only é garantido por:
+Essas pastas são fonte de verdade (substituem Confluence e Azure AI Search). Pela **ADR-0003**, documentos contraditórios são gerenciados por metadado de vigência — o corpus não pode ser alterado pelo agente, pois toda mudança exige processo de Compliance. Pela **ADR-0004**, o corpus representa o resultado do pipeline de chunking validado no protótipo; alterações corrompem silenciosamente a qualidade do retrieval. O read-only é garantido por:
 
 1. **Gate de aprovação do agente** — toda escrita (`write_file`/`edit_file`/`move_file`) exige confirmação humana antes de tocar o disco; a política é recusar qualquer escrita nessas pastas.
 2. **Instrução no `AGENTS.md`** — registrar que `docs/novatech/` e `data/retrieval-corpus/` são fontes read-only.
@@ -137,7 +137,7 @@ PROC-042-B (versão antiga, relevância menor — risco de contradição)
 > Sul 1.2, Sudeste 1.0, Centro-Oeste 1.3, Nordeste 1.4, Norte 1.6.
 ```
 
-Resultado conforme gabarito: devem ser recuperados `PROC-042v2-A` e `PROC-042v2-B`; `PROC-042-B` aparece como possível contradição (Norte 1.6 vs 1.8). A resposta correta usa a versão revisada (v2).
+Resultado conforme gabarito: devem ser recuperados `PROC-042v2-A` e `PROC-042v2-B`; `PROC-042-B` aparece como possível contradição (Norte 1.6 vs 1.8). A resposta correta usa a versão revisada (v2) — alinhado à **ADR-0003**: quando ambas as versões são recuperadas, o modelo deve priorizar a mais recente (metadado de vigência; nov/2023).
 
 ### (c) Ler o histórico do repositório (via `git`)
 
