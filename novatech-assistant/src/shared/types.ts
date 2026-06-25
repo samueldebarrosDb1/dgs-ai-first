@@ -31,3 +31,32 @@ export interface QueryResponse {
   answer: string;
   source_document: SourceDocument;
 }
+
+// --- Feedback (POST /api/feedback) ----------------------------------------
+
+/** Corpo de entrada do POST /api/feedback, após validação. */
+export interface FeedbackRequest {
+  /** Id da query que originou a resposta avaliada. */
+  queryId: string;
+  /** Nota de 1 a 5. */
+  rating: number;
+  /** Comentário livre opcional do atendente. */
+  comment?: string;
+  /** E-mail do atendente — DADO PESSOAL: nunca deve ir para log (LGPD). */
+  attendantEmail: string;
+}
+
+/** Registro de feedback persistido (request + carimbo de tempo). */
+export interface FeedbackRecord extends FeedbackRequest {
+  /** Momento da gravação, ISO 8601. */
+  timestamp: string;
+}
+
+/**
+ * Porta de persistência de feedback (injetada no handler).
+ * Abstrai o store real (CosmosDB em produção) — o handler não conhece o Azure,
+ * o que mantém o endpoint testável sem provisionar nada (Anexo C: sem Azure nesta fase).
+ */
+export interface FeedbackRepository {
+  save(record: FeedbackRecord): Promise<void>;
+}
